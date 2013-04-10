@@ -145,7 +145,7 @@ class StrictRedisCluster:
                         if slave_online == 'online':
                             slave = {'host':slave_host, 'port':slave_port}
                     
-                    if slave is not {}:
+                    if slave:
                         try:
                             redis_slave = redis.StrictRedis(host=slave['host'], port=int(slave['port']), db=db)
                             self.redises[alias + '_slave'] = redis_slave
@@ -181,6 +181,7 @@ class StrictRedisCluster:
             if name not in StrictRedisCluster._loop_keys:
                 # take care of hash tags
                 tag_start = None
+                tag_end = None
                 key_type = hash_tag = ''
                 # since we don't have "first item" in dict,
                 # this list is needed in order to check hash_tag in mset({"a{a}": "a", "b":"b"})
@@ -200,6 +201,7 @@ class StrictRedisCluster:
                 for k in list_ht:
                     try:
                         tag_start = k.index('{')
+                        tag_end = k.index('}')
                         hash_tag = k
                         break
                     except Exception as e:
@@ -220,15 +222,11 @@ class StrictRedisCluster:
                     L = list(args)
                     if key_type != 'string':
                         if key_type == 'list':
-                            hkey = L[0][0][tag_start + 1:-1]
-                            L[0][0] = L[0][0][0:tag_start]
+                            hkey = L[0][0][tag_start + 1:tag_end]
                         else:
-                            hkey = hash_tag[tag_start + 1:-1]
-                            L[0][hash_tag[0:tag_start]] = L[0][hash_tag]
-                            del L[0][hash_tag]
+                            hkey = hash_tag[tag_start + 1:tag_end]
                     else:
-                        hkey = L[0][tag_start + 1:-1]
-                        L[0] = L[0][0:tag_start]
+                        hkey = L[0][tag_start + 1:tag_end]
 
                     args = tuple(L)
 
